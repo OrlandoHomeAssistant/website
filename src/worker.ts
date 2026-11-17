@@ -52,7 +52,7 @@ export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     if (!['GET','HEAD'].includes(request.method)) return headers(new Response('Method not allowed',{status:405,headers:{Allow:'GET, HEAD'}}));
-    if (url.pathname === '/robots.txt') return headers(new Response('User-agent: *\nDisallow: /\n',{headers:{'Content-Type':'text/plain; charset=utf-8'}}));
+    if (url.pathname === '/robots.txt') return headers(new Response('User-agent: *\nAllow: /\n# Development site: X-Robots-Tag noindex, nofollow is sent on every response.\n',{headers:{'Content-Type':'text/plain; charset=utf-8'}}));
     if (url.pathname === '/api/next-event') {
       const result = await calendar(request,env,ctx);
       return headers(Response.json(result || {event:null,unavailable:true},{status:result?200:503,headers:{'Cache-Control':'no-store'}}));
@@ -70,6 +70,13 @@ export default {
           const date = new Intl.DateTimeFormat('en-US', {timeZone:'America/New_York',month:'short',day:'numeric'}).format(new Date(result.event.start));
           element.setInnerContent(`Next meetup: ${date}`);
         }
+      },
+    }).on('meta[property="og:url"]', {
+      element(element) { element.setAttribute('content', new URL('/', request.url).href); },
+    }).on('meta[property="og:image"], meta[name="twitter:image"]', {
+      element(element) {
+        const image = element.getAttribute('content');
+        if (image) element.setAttribute('content', new URL(new URL(image).pathname, request.url).href);
       },
     }).transform(asset);
     const response = headers(html);

@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "Home Assistant Orlando",
+  "short_name": "HA Orlando",
+  "description": "Orlando Home Assistant meetups and community.",
+  "lang": "en-US",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#edf6f8",
+  "theme_color": "#087ba6",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
