@@ -1,21 +1,94 @@
 name: Website checks
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: website-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+env:
+  WRANGLER_SEND_METRICS: 'false'
 jobs:
-  check:
+  validate:
+    name: Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm test
+      - name: Unit and Worker integration tests
+        run: npm test
       - run: npm run typecheck
-      - run: npx wrangler deploy --dry-run
+      - name: Verify generated artwork is current
+        run: npm run assets && git diff --exit-code -- dist/
+      - name: Verify deployment bundle
+        run: npx wrangler deploy --dry-run
+  check:
+    name: check
+    needs: validate
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require every validation job to pass
         env:
-          WRANGLER_SEND_METRICS: 'false'
+          RESULT: ${{ needs.validate.result }}
+        run: test "$RESULT" = success
+  deploy-dev:
+    name: Deploy dev
+    permissions:
+      contents: read
+      deployments: write
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEV_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: dev
+      url: https://orlando-home-assistant-dev.imagineer21.workers.dev
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Check deployment credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo '::error::Configure the dev environment Cloudflare token and account ID. See docs/deployment.md.'
+            exit 1
+          fi
+      - name: Deploy the checked commit to dev
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          BUILD_SHA: ${{ github.sha }}
+        run: npm run deploy:dev -- --var "BUILD_SHA:$BUILD_SHA"
+      - name: Verify deployed commit and public endpoints
+        env:
+          EXPECTED_BUILD_SHA: ${{ github.sha }}
+        run: npm run smoke -- https://orlando-home-assistant-dev.imagineer21.workers.dev
+      - name: Record deployment result
+        run: echo 'Verified the checked commit on https://orlando-home-assistant-dev.imagineer21.workers.dev' >> "$GITHUB_STEP_SUMMARY"

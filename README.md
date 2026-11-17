@@ -1,10 +1,12 @@
 # Orlando Home Assistant
 
+[![Website checks](https://github.com/OrlandoHomeAssistant/website/actions/workflows/checks.yml/badge.svg)](https://github.com/OrlandoHomeAssistant/website/actions/workflows/checks.yml)
+
 A fast, responsive community landing page for Central Florida Home Assistant users. Join the conversation on [Discord](https://discord.gg/5wa9CASXd) and organize meetups on [Luma](https://luma.com/orlandohomeassistant).
 
 ## Development
 
-Requires a current Node.js LTS release.
+Use Node.js 24 or newer (`nvm use` selects Node 24). CI runs on Node 24 and 26.
 
 ```sh
 npm ci
@@ -34,13 +36,13 @@ npm run deploy:dev
 
 The only configured deployment is `orlando-home-assistant-dev` on `workers.dev`. The site permits crawling and indexing, including on the dev URL, per the organizers’ request. `robots.txt` allows all agents and advertises a sitemap. The page is public, not access-protected.
 
-There are no zone routes or custom domains in the configuration. **Keep the existing homeassistantorlando.org redirect unchanged until the production cutover is explicitly authorized.**
+There are no zone routes or custom domains in the configuration. **Keep the existing orlandohomeassistant.org redirect unchanged until the production cutover is explicitly authorized.**
 
-Future automated deployment should use a scoped Cloudflare API token in GitHub Actions secrets or a Cloudflare Git integration. No credentials belong in this repo.
+Passing commits on `main` can deploy automatically through GitHub Actions to the dev Worker. Deployment activates once its dedicated environment secret and repository switch are configured. See [deployment setup and rollback](docs/deployment.md). No credentials belong in this repo.
 
 ## Contributions and assets
 
-Use pull requests for changes. Run the tests, type check, and a Wrangler dry run before merging. Check long event titles and venue addresses at narrow mobile widths, both themes, and keyboard navigation. Tests cover the real feed format, event order, cancellations, expiry, stale fallback, and safe rendering.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, test commands, design conventions, and the review process. Use pull requests for changes and run `npm run check` before merging. Check long event titles and venue addresses at narrow mobile widths, both themes, and keyboard navigation. Unit tests cover feed parsing, event order, cancellations, expiry, safe rendering, sharing assets, and discovery. Integration tests run the actual Worker with simulated Luma responses to cover server rendering, cache behavior, outages, size limits, HTTP methods, and static assets.
 
 Code and original SVG implementation are MIT licensed. The fountain-house brand rendition is based on artwork supplied by the organizers. Figtree is distributed under its included SIL Open Font License (`dist/Figtree-OFL.txt`). The community is independent and is not affiliated with the Open Home Foundation.
 

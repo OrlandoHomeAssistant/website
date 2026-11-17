@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "test": "node --test tests/*.test.js",
+    "test": "npm run test:unit && npm run test:integration",
     "typecheck": "wrangler types && tsc --noEmit",
-    "deploy:dev": "wrangler deploy",
+    "deploy:dev": "wrangler deploy --name orlando-home-assistant-dev",
     "check": "npm test && npm run typecheck && wrangler deploy --dry-run",
-    "assets": "node scripts/generate-assets.mjs"
+    "assets": "node scripts/generate-assets.mjs",
+    "test:unit": "node --test tests/*.test.js",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "ical.js": "^2.2.1"
@@ -18,7 +21,12 @@
     "@cloudflare/workers-types": "latest",
     "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "miniflare": "5.20261116.0-beta",
     "typescript": "^5.9.3",
     "wrangler": "^4.163.0"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
