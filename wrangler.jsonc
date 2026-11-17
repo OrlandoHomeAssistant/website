@@ -7,7 +7,7 @@
     "nodejs_compat"
   ],
   "workers_dev": true,
-  "preview_urls": false,
+  "preview_urls": true,
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
@@ -36,5 +36,19 @@
         "PorchCounter"
       ]
     }
-  ]
+  ],
+  "previews": {
+    "vars": {
+      "LUMA_ICAL_URL": "https://api.luma.com/ics/get?entity=calendar&id=cal-uymZ1tD2lTtRs5C",
+      "BUILD_SHA": "local"
+    },
+    "durable_objects": {
+      "bindings": [
+        {
+          "name": "PORCH_COUNTER",
+          "class_name": "PorchCounter"
+        }
+      ]
+    }
+  }
 }

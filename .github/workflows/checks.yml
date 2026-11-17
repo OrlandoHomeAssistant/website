@@ -3,12 +3,13 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
   group: website-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 env:
   WRANGLER_SEND_METRICS: 'false'
 jobs:
@@ -24,6 +25,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.sha }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
@@ -53,7 +55,7 @@ jobs:
       contents: read
       deployments: write
     needs: check
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEV_DEPLOY_ENABLED == 'true'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.DEV_DEPLOY_ENABLED != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -63,15 +65,32 @@ jobs:
       group: deploy-dev
       cancel-in-progress: false
     steps:
+      - name: Skip superseded main revisions
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          latest="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)"
+          if [ "$latest" = "$GITHUB_SHA" ]; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+            echo 'A newer main revision is queued; skipping this deployment.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.current.outputs.deploy == 'true'
         with:
           persist-credentials: false
+          ref: ${{ github.sha }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.current.outputs.deploy == 'true'
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+        if: steps.current.outputs.deploy == 'true'
       - name: Check deployment credentials
+        if: steps.current.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -81,14 +100,107 @@ jobs:
             exit 1
           fi
       - name: Deploy the checked commit to dev
+        if: steps.current.outputs.deploy == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           BUILD_SHA: ${{ github.sha }}
         run: npm run deploy:dev -- --var "BUILD_SHA:$BUILD_SHA"
       - name: Verify deployed commit and public endpoints
+        if: steps.current.outputs.deploy == 'true'
         env:
           EXPECTED_BUILD_SHA: ${{ github.sha }}
         run: npm run smoke -- https://orlando-home-assistant-dev.imagineer21.workers.dev
       - name: Record deployment result
+        if: steps.current.outputs.deploy == 'true'
         run: echo 'Verified the checked commit on https://orlando-home-assistant-dev.imagineer21.workers.dev' >> "$GITHUB_STEP_SUMMARY"
+  deploy-preview:
+    name: Deploy PR preview
+    needs: check
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]' &&
+      !github.event.pull_request.draft &&
+      vars.PREVIEW_DEPLOY_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      deployments: write
+    environment:
+      name: preview
+      url: ${{ steps.preview.outputs.url }}
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Skip closed or superseded PR revisions
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/pr.json"
+          if jq -e --arg sha "$HEAD_SHA" '.state == "open" and .head.sha == $sha' "$RUNNER_TEMP/pr.json" > /dev/null; then
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.current.outputs.deploy == 'true'
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.current.outputs.deploy == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+        if: steps.current.outputs.deploy == 'true'
+      - name: Check preview credentials
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo '::error::Configure the preview environment Cloudflare token and account ID. See docs/deployment.md.'
+            exit 1
+          fi
+      - name: Create or update isolated PR preview
+        id: preview
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          npx wrangler preview --worker-name orlando-home-assistant-dev --name "pr-$PR_NUMBER" --ignore-base-config --var "BUILD_SHA:$GITHUB_SHA" --json > "$RUNNER_TEMP/preview.json"
+          url="$(jq -er '.preview.urls[0] | select(test("^https://[a-z0-9-]+[.][a-z0-9-]+[.]workers[.]dev/?$"))' "$RUNNER_TEMP/preview.json")"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Verify preview revision, assets and indexing policy
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          EXPECTED_BUILD_SHA: ${{ github.sha }}
+          EXPECT_NOINDEX: 'true'
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+        run: npm run smoke -- "$PREVIEW_URL"
+      - name: Publish preview link on the PR
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+        run: |
+          printf '<!-- cloudflare-pr-preview -->\nPreview: %s\n\nVerified commit: %s. Preview clicks use isolated storage.\n' "$PREVIEW_URL" "$GITHUB_SHA" > "$RUNNER_TEMP/preview-comment.md"
+          comment_id="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | contains("<!-- cloudflare-pr-preview -->"))) | .id' | head -1)"
+          if [ -n "$comment_id" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" -F "body=@$RUNNER_TEMP/preview-comment.md"
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -F "body=@$RUNNER_TEMP/preview-comment.md"
+          fi
+          printf 'Verified PR preview: %s\n' "$PREVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
