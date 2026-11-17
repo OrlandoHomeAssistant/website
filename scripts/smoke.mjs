@@ -36,6 +36,8 @@ assert.match(await(await get('/robots.txt')).text(),/Allow: \//);
 assert.ok((await(await get('/sitemap.xml')).text()).includes(new URL('/',base).href));
 assert.ok((await(await get('/llms.txt')).text()).includes(new URL('/api/next-event',base).href));
 assert.match((await get('/index.md')).headers.get('Content-Type'),/text\/markdown/);
+const porch=await(await get('/api/porch')).json();
+assert.ok(Number.isSafeInteger(porch.off) && porch.off>=0 && Number.isSafeInteger(porch.on) && porch.on>=0);
 const api=await fetch(new URL('/api/next-event',base),{headers:{'User-Agent':'OrlandoHomeAssistant-Smoke/1.0'},signal:AbortSignal.timeout(12000)});
 const next=await api.json();
 assert.ok(api.status===200 || (api.status===503 && next.unavailable===true));

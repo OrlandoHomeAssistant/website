@@ -11,7 +11,7 @@ const fixture=readFileSync(new URL('../orlando.ics',import.meta.url),'utf8')
   .replaceAll('20270109','20990109'); // Keep the fixture upcoming as the test suite ages.
 let worker, cache, upstream, calls;
 before(async()=>{
- const bundle=await build({entryPoints:[fileURLToPath(new URL('../../src/worker.ts',import.meta.url))],bundle:true,format:'esm',platform:'browser',target:'es2022',write:false});
+ const bundle=await build({entryPoints:[fileURLToPath(new URL('../../src/worker.ts',import.meta.url))],bundle:true,external:['cloudflare:*'],format:'esm',platform:'browser',target:'es2022',write:false});
  worker=new Miniflare(convertV4MiniflareOptions({
   modules:true,script:bundle.outputFiles[0].text,
   compatibilityDate:'2026-11-16',compatibilityFlags:['nodejs_compat'],
