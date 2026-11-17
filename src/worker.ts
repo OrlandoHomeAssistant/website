@@ -54,6 +54,7 @@ export default {
     const url = new URL(request.url);
     if (!['GET','HEAD'].includes(request.method)) return headers(new Response('Method not allowed',{status:405,headers:{Allow:'GET, HEAD'}}));
     const text = (body: string, type = 'text/plain; charset=utf-8') => headers(new Response(body, {headers:{'Content-Type':type,'Cache-Control':'public, max-age=900'}}));
+    if (url.pathname === '/health') return headers(Response.json({status:'ok',commit:env.BUILD_SHA},{headers:{'Cache-Control':'no-store'}}));
     if (url.pathname === '/robots.txt') return text(robots(url.origin));
     if (url.pathname === '/sitemap.xml') return text(sitemap(url.origin), 'application/xml; charset=utf-8');
     if (url.pathname === '/llms.txt') return text(agentGuide(url.origin));
