@@ -32,7 +32,7 @@ npx wrangler login
 npm run deploy:dev
 ```
 
-The only configured deployment is `orlando-home-assistant-dev` on `workers.dev`. All responses have `X-Robots-Tag: noindex, nofollow`; `robots.txt` permits fetching so social preview services can read the metadata; the noindex header discourages search indexing. This discourages indexing, but the dev URL is public, not access-protected.
+The only configured deployment is `orlando-home-assistant-dev` on `workers.dev`. The site permits crawling and indexing, including on the dev URL, per the organizers’ request. `robots.txt` allows all agents and advertises a sitemap. The page is public, not access-protected.
 
 There are no zone routes or custom domains in the configuration. **Keep the existing homeassistantorlando.org redirect unchanged until the production cutover is explicitly authorized.**
 
@@ -58,3 +58,7 @@ The initial HTML includes Open Graph and large-image card metadata, including ab
 Run `npm run assets` to reproduce the raster assets from the existing SVG mark and hero illustration. Review both share images and icon padding after changing source artwork. `npm test` checks that the metadata points to real PNG images with the declared dimensions.
 
 The assets and metadata can be verified from HTTP responses, but final iMessage, Google Messages, WhatsApp, and other app layouts depend on the app, its preview setting, and its cache. No test messages are sent automatically.
+
+## Automated readers
+
+All community information and the next meetup render on the server. `/robots.txt` permits all user agents; `/sitemap.xml` lists the landing page. `/llms.txt` offers concise source links and API/freshness documentation. `/index.md` provides current meetup information in Markdown, and initial HTML advertises both Markdown and JSON alternates. JSON-LD exposes the community, website, and next event without inventing ticket prices or attendance details. These discovery hints improve readability; individual agents decide which conventions they support.
