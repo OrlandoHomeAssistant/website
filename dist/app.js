@@ -80,6 +80,8 @@ window.addEventListener('scroll',()=>{
   scrollFrame=true;
   requestAnimationFrame(()=>{
     scrollFrame=false;
+    // A queued frame may outlive motion mode or the visible illustration.
+    if (!motionEnabled || !houseVisible) return;
     const current=window.scrollY;
     if(Math.abs(current-previousScroll)<4)return;
     previousScroll=current;
