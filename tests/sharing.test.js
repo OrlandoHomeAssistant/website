@@ -10,12 +10,14 @@ function dimensions(path) {
 }
 test('share metadata is present without JavaScript and points to real, correctly-sized public images',()=>{
  const images=[...html.matchAll(/<meta property="og:image" content="([^"]+)">\s*<meta property="og:image:width" content="(\d+)"><meta property="og:image:height" content="(\d+)">/g)];
- assert.equal(images.length,2);
+ assert.equal(images.length,1,'Multiple OG images can become a tiled Messages preview');
  for (const [,link,width,height] of images) {
   const url=new URL(link);assert.equal(url.protocol,'https:');
   assert.deepEqual(dimensions(url.pathname.slice(1)),[Number(width),Number(height)]);
   assert.ok(Number(width)>=900);
  }
+ const cardImage=html.match(/<meta name="twitter:image" content="([^"]+)">/)[1];
+ assert.equal(cardImage,images[0][1]);
  assert.match(html,/<meta name="twitter:card" content="summary_large_image">/);
  assert.match(html,/<meta property="og:image:alt"/);
 });

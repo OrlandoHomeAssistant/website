@@ -48,14 +48,14 @@ Code and original SVG implementation are MIT licensed. The fountain-house brand 
 
 The initial HTML includes Open Graph and large-image card metadata, including absolute URLs, dimensions, MIME types, and accessible image descriptions. The Worker adjusts URL metadata to its serving origin so links work on dev and a future production origin. The preview artwork has no event date, so cached previews remain relevant as Luma events change. Share clients cache previews independently; image URLs are versioned so artwork can be updated deliberately.
 
-- `dist/social/share-v1.png`: 1200 × 630 primary preview, 44 KB.
-- `dist/social/share-square-v1.png`: 1200 × 1200 alternate preview.
+- `dist/social/share-v2.png`: 1200 × 630 share preview, centered for wide and square crops.
+- Only one `og:image` is advertised. Multiple images can become side-by-side tiles in Apple Messages. Old v1 images remain available for previously cached links, but are not advertised.
 - `dist/apple-touch-icon.png`: 180 × 180 iPhone/iPad icon.
 - `dist/icons/`: 192/512 Android icons and a separate maskable icon with padding inside its safe zone.
 - `dist/site.webmanifest`: home-screen shortcut metadata; uses browser display mode, with no offline or native-app claims.
 - SVG, ICO, and 32 px PNG favicons provide browser fallbacks.
 
-Run `npm run assets` to reproduce the raster assets from the existing SVG mark and hero illustration. Review both share images and icon padding after changing source artwork. `npm test` checks that the metadata points to real PNG images with the declared dimensions.
+Run `npm run assets` to reproduce the raster assets from the existing SVG mark and hero illustration. Review the share image and icon padding after changing source artwork. `npm test` checks that the metadata points to real PNG images with the declared dimensions.
 
 The assets and metadata can be verified from HTTP responses, but final iMessage, Google Messages, WhatsApp, and other app layouts depend on the app, its preview setting, and its cache. No test messages are sent automatically.
 
