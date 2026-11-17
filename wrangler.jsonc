@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "orlando-home-assistant-dev",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-16",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {"directory": "./dist", "binding": "ASSETS", "run_worker_first": true},
+  "observability": {"enabled": true, "head_sampling_rate": 1},
+  "vars": {"LUMA_ICAL_URL": "https://api.luma.com/ics/get?entity=calendar&id=cal-uymZ1tD2lTtRs5C"}
+}

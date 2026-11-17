@@ -1,0 +1,26 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Luma//Orlando Home Assistant Community//EN
+X-WR-CALNAME:Orlando Home Assistant Community
+X-WR-CALDESC:Luma Calendar
+REFRESH-INTERVAL;VALUE=DURATION:PT12H
+X-PUBLISHED-TTL:PT12H
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+DTSTART:20270109T140000Z
+DTEND:20270109T170000Z
+DTSTAMP:20261117T025735Z
+ORGANIZER;CN="Mike S":MAILTO:calendar-invite@lu.ma
+UID:evt-3GIz2yYPGSZ8Gnw@events.lu.ma
+SUMMARY:Orlando Home Assistant Meetup: Get-Together & Gear Swap
+DESCRIPTION:Get up-to-date information at: https://luma.com/qpe49nll\n\nAd
+ dress:\nStardust Video & Coffee\nOrlando, FL\nUnited States\n\nHosted by M
+ ike S, Badi M & Adam Zywicki
+LOCATION:Stardust Video & Coffee, 1842 Winter Park Rd, Orlando, FL 32803, 
+ USA
+GEO:28.5684649;-81.34653519999999
+SEQUENCE:217047455
+STATUS:TENTATIVE
+END:VEVENT
+END:VCALENDAR
