@@ -39,7 +39,7 @@ For visual changes, check a narrow phone screen, a larger screen, both device co
 
 ## Review and deployment
 
-Describe the problem, resulting behavior, and validation. The PR template is intentionally short. The required `check` status covers both supported Node versions; normal changes go through review before merging.
+Describe the problem, resulting behavior, and validation. The PR template is intentionally short. The required `check` status covers both supported Node versions. All files are owned by `@NimbleEngineer21` through `.github/CODEOWNERS`, and `main` requires a code-owner approval. Admin bypass remains available for administrative exceptions. GitHub does not allow PR authors to approve their own PRs; maintainers must account for that when using their own account to open changes.
 
 Passing changes merged into `main` deploy automatically to the existing dev Worker once the dev environment credential is configured and `DEV_DEPLOY_ENABLED` is enabled. Fork PRs run checks without deployment credentials. See [deployment setup and rollback](docs/deployment.md).
 
