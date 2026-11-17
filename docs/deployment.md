@@ -1,41 +1,51 @@
-# Dev deployment
+# Dev and PR deployments
 
-The GitHub `Website checks` workflow validates pull requests and `main` on Node 24 and 26. Its stable `check` job is required by branch protection. After checks pass, pushes to `main` deploy to `orlando-home-assistant-dev` when deployment is enabled. Manual runs on `main` follow the same checks. PRs never receive deployment credentials or deploy code.
+`Website checks` tests pull requests and `main` on Node 24 and 26. The stable `check` job remains the required branch-protection check.
 
-## One-time setup
+- **Merge to main:** after checks pass, the exact checked commit deploys automatically to `https://orlando-home-assistant-dev.imagineer21.workers.dev`.
+- **PR preview:** a passing, non-draft PR from this repository creates or updates a native Cloudflare Preview named `pr-<number>`. Approve its `preview` environment deployment to release the preview credential. The URL appears in the GitHub deployment, job summary, and one updated PR comment. The preview runs the tested PR merge revision, so it includes the current base branch.
+- **Forks and Dependabot:** run validation without receiving Cloudflare credentials or deploying. A maintainer can bring a reviewed contribution onto an internal branch to preview it.
+- **PR closed or merged:** a trusted close handler checks out `main` and removes that PR's disposable Preview, including its deployments. An absent Preview is a successful no-op. It never executes closed PR code.
 
-The repository has a GitHub environment named `dev`, restricted to protected branches. Configure it in [environment settings](https://github.com/OrlandoHomeAssistant/website/settings/environments):
+The dev hostname and official domain redirect stay unchanged. No production deployment or DNS change is configured.
 
-1. Add environment secret `CLOUDFLARE_API_TOKEN`: a dedicated Cloudflare Workers deployment token scoped to the account hosting this Worker. Use Cloudflare's Edit Cloudflare Workers template and restrict resources to that account. Keep its permissions and lifetime limited to what this deployment needs. Do not use the local Wrangler OAuth token as the CI secret.
-2. Set environment variable `CLOUDFLARE_ACCOUNT_ID` to that account's ID. This has already been configured for the current dev account.
-3. Set repository Actions variable `DEV_DEPLOY_ENABLED` to `true`. Until then, validation runs and the deploy job is skipped.
-4. Run `Website checks` manually on `main` or merge a PR. Confirm the deployment and smoke-check steps succeed.
+## One-time credentials
 
-GitHub cannot reveal an existing secret's value. If reusing a token from another repo, an owner must supply its original value again; it cannot be copied out through the API. Prefer a separate token so it can be rotated independently. Never put token values in source, command arguments, issues, or chat.
+Configure `CLOUDFLARE_API_TOKEN` as an **environment secret** in both GitHub environments:
 
-[Cloudflare's GitHub Actions instructions](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/) explain token creation and account selection.
+- [dev settings](https://github.com/OrlandoHomeAssistant/website/settings/environments): restricted to protected branches. Used for main deployments and trusted close-event cleanup.
+- [preview settings](https://github.com/OrlandoHomeAssistant/website/settings/environments): requires the owner's deployment approval because it executes unmerged PR code. Self-review is allowed for this environment so the owner can approve previews for their own PRs. This is separate from the PR's merge approval.
 
-## What deployment verifies
+Use a dedicated Cloudflare deployment token with Workers Scripts edit permission scoped to the hosting account. Never put its value in source, issues, command arguments, or chat. `CLOUDFLARE_ACCOUNT_ID` is a non-secret environment variable and is configured in both environments.
 
-The job installs the lockfile dependencies, deploys the exact checked commit with a public `BUILD_SHA` identifier, then runs `npm run smoke` against the dev URL. `/health` returns that commit ID. Smoke checks compare deployed static asset hashes with the source and verify the page, sharing metadata, crawler endpoints, and graceful handling of Luma availability. No messages or registrations are sent.
+GitHub cannot reveal a saved secret's value. To reuse an existing token, supply the original value again in each environment. The local Wrangler OAuth login is not a CI credential. See [Cloudflare's GitHub Actions instructions](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/).
 
-The deployment token is exposed only to credential validation and the deployment step. Checkout does not retain Git credentials, workflow permissions are read-only, and deployments are serialized. These controls do not replace review: a maintainer who changes workflows or `main` can affect what is deployed.
+Set repository variables `DEV_DEPLOY_ENABLED` and `PREVIEW_DEPLOY_ENABLED` to `true` after the secrets are saved. An explicit `false` pauses the corresponding deployments; when absent, deployment is enabled. They remain paused while credentials are missing. Re-run a PR workflow to create its Preview; merge the reviewed workflow PR and run `Website checks` on `main` to verify automatic dev deployment.
 
-## Manual deployment and rollback
+## Storage, URLs, and verification
 
-For a local deployment:
+Native [Worker Previews](https://developers.cloudflare.com/workers/previews/) use the same Worker project with isolated Durable Object namespaces and storage. Preview switch clicks cannot change dev totals. Keep classes and migration history at the top level; `previews.durable_objects.bindings` declares the binding used by preview code. The assets are uploaded from the checked branch. Preview variables are explicitly configured and `--ignore-base-config` avoids inheriting dashboard-only settings.
+
+A `pr-<number>` URL is stable across that PR's updates. Closing the PR deletes its disposable preview state. Dev counters persist across deployments. Cloudflare adds `X-Robots-Tag: noindex` to the Preview's `workers.dev` responses; the preview smoke test requires it. Dev smoke tests require indexing to remain allowed.
+
+Both paths verify `/health` matches the exact checked SHA, compare static asset hashes against that source, and check sharing metadata, public crawler endpoints, Luma availability handling, and read-only counter access. Automated checks never manufacture switch clicks.
+
+Deployments are serialized per target and outdated queued revisions are skipped. Checkout does not persist Git credentials. Tokens are supplied only to credential validation and Cloudflare deployment/cleanup steps. Preview publication uses GitHub's short-lived token and updates only the comment carrying the preview marker. The `pull_request_target` close handler uses protected `main` code and never checks out a PR ref.
+
+## Local commands and rollback
 
 ```sh
 npx wrangler login
 npm run check
 npm run deploy:dev -- --var "BUILD_SHA:$(git rev-parse HEAD)"
-npm run smoke -- https://orlando-home-assistant-dev.imagineer21.workers.dev
+EXPECTED_BUILD_SHA="$(git rev-parse HEAD)" npm run smoke -- https://orlando-home-assistant-dev.imagineer21.workers.dev
 ```
 
-`npm run deploy:dev` pins the dev Worker name. No zone routes or custom domains are configured.
+To preview reviewed local work independently:
 
-To undo a bad change, revert its commit through a PR; passing checks deploy the revert. For an urgent restore, a maintainer can use Cloudflare's Worker deployment rollback, then revert the source to prevent a later push from reintroducing the issue. Disable `DEV_DEPLOY_ENABLED` while investigating if automatic deployments must stop.
+```sh
+npx wrangler preview --name pr-<number> --ignore-base-config --var "BUILD_SHA:$(git rev-parse HEAD)" --json
+EXPECTED_BUILD_SHA="$(git rev-parse HEAD)" EXPECT_NOINDEX=true npm run smoke -- <returned-preview-url>
+```
 
-## Production
-
-The existing domain redirect stays unchanged. There is no automatic production deployment, DNS change, or production token in this workflow. Add a separate production configuration and review its hostname, crawler policy, and credentials when the organizers explicitly authorize the cutover.
+To undo a bad main change, revert it through a PR. For an urgent restore, use Cloudflare's deployment rollback and then revert the source. Set `DEV_DEPLOY_ENABLED=false` while investigating. Set `PREVIEW_DEPLOY_ENABLED=false` to pause PR deployment and cleanup; existing Preview URLs remain until removed.

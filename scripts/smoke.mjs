@@ -19,7 +19,8 @@ for(let attempt=0;attempt<5;attempt++){
 }
 const page=await get('/');
 assert.ok(page.headers.get('Content-Security-Policy'));
-assert.ok(!page.headers.get('X-Robots-Tag')?.includes('noindex'));
+const noindex=page.headers.get('X-Robots-Tag')?.includes('noindex') || false;
+assert.equal(noindex,process.env.EXPECT_NOINDEX==='true','Unexpected search indexing policy');
 const html=await page.text();
 assert.match(html,/<h1/);assert.match(html,/https:\/\/discord.gg\/5wa9CASXd/);
 const images=[...html.matchAll(/<meta property="og:image" content="([^"]+)"/g)];

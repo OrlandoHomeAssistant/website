@@ -80,3 +80,7 @@ The SQLite-backed `PorchCounter` Durable Object owns this house's two totals. Ke
 Motion mode is optional, browser-local, and only runs while the illustration is visible. Scrolling briefly lights the house; it returns to idle after two seconds. Manual switching exits motion mode. Automatic motion never sends a counter request, and page loads/preview crawlers do not add clicks. The light demo continues to work if the counter is unavailable.
 
 The protocol FAQ links to the official Zigbee, Z-Wave, Matter, and Thread documentation and distinguishes Matter (the application protocol) from Thread (the network). It makes no device-purchase recommendation without checking the exact model.
+
+## Pull request previews
+
+After validation and approval of the GitHub `preview` environment, internal PRs receive a native Cloudflare Preview URL with isolated counter storage. Merges to `main` deploy to dev after checks pass. Forks run checks without deployment credentials. Closing a PR removes its disposable preview. See [deployment setup](docs/deployment.md) for credentials, activation switches, and verification.
