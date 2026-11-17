@@ -32,7 +32,7 @@ npx wrangler login
 npm run deploy:dev
 ```
 
-The only configured deployment is `orlando-home-assistant-dev` on `workers.dev`. All responses have `X-Robots-Tag: noindex, nofollow`; `robots.txt` permits fetching so social preview services can read the metadata; the noindex header discourages search indexing. This discourages indexing, but the dev URL is public, not access-protected.
+The only configured deployment is `orlando-home-assistant-dev` on `workers.dev`. The site permits crawling and indexing, including on the dev URL, per the organizers’ request. `robots.txt` allows all agents and advertises a sitemap. The page is public, not access-protected.
 
 There are no zone routes or custom domains in the configuration. **Keep the existing homeassistantorlando.org redirect unchanged until the production cutover is explicitly authorized.**
 
@@ -58,3 +58,11 @@ The initial HTML includes Open Graph and large-image card metadata, including ab
 Run `npm run assets` to reproduce the raster assets from the existing SVG mark and hero illustration. Review both share images and icon padding after changing source artwork. `npm test` checks that the metadata points to real PNG images with the declared dimensions.
 
 The assets and metadata can be verified from HTTP responses, but final iMessage, Google Messages, WhatsApp, and other app layouts depend on the app, its preview setting, and its cache. No test messages are sent automatically.
+
+## Automated readers
+
+All community information and the next meetup render on the server. `/robots.txt` permits all user agents; `/sitemap.xml` lists the landing page. `/llms.txt` offers concise source links and API/freshness documentation. `/index.md` provides current meetup information in Markdown, and initial HTML advertises both Markdown and JSON alternates. JSON-LD exposes the community, website, and next event without inventing ticket prices or attendance details. These discovery hints improve readability; individual agents decide which conventions they support.
+
+### Shared dev hostname limitation
+
+Cloudflare applies Browser Integrity Check to every `workers.dev` request before the Worker runs. Its default Python `urllib` signature currently receives HTTP 403/error 1010, while tested named crawler and preview user agents can fetch the site. This check cannot be disabled on `workers.dev`. Programmatic clients should identify themselves with a descriptive application User-Agent (for example, `orlando-community-reader/1.0`). A future Worker Custom Domain in a controlled zone permits configuring this policy for public information paths. The current redirect has not been changed. See [Cloudflare error 1010](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/).

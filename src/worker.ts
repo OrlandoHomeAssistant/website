@@ -1,3 +1,4 @@
+import { robots, sitemap, agentGuide, markdownPage, structuredData } from './discovery.js';
 import { parseFeed, selectSnapshot, renderMeetup, REFRESH_MS } from './feed.js';
 
 async function readBounded(response: Response, maxBytes = 512 * 1024): Promise<string> {
@@ -40,7 +41,7 @@ async function calendar(request: Request, env: Env, ctx: ExecutionContext) {
 
 function headers(response: Response) {
   const result = new Response(response.body, response);
-  result.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  result.headers.set('X-Robots-Tag', 'index, follow, max-image-preview:large');
   result.headers.set('X-Content-Type-Options','nosniff');
   result.headers.set('Referrer-Policy','strict-origin-when-cross-origin');
   result.headers.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
@@ -52,7 +53,16 @@ export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     if (!['GET','HEAD'].includes(request.method)) return headers(new Response('Method not allowed',{status:405,headers:{Allow:'GET, HEAD'}}));
-    if (url.pathname === '/robots.txt') return headers(new Response('User-agent: *\nAllow: /\n# Development site: X-Robots-Tag noindex, nofollow is sent on every response.\n',{headers:{'Content-Type':'text/plain; charset=utf-8'}}));
+    const text = (body: string, type = 'text/plain; charset=utf-8') => headers(new Response(body, {headers:{'Content-Type':type,'Cache-Control':'public, max-age=900'}}));
+    if (url.pathname === '/robots.txt') return text(robots(url.origin));
+    if (url.pathname === '/sitemap.xml') return text(sitemap(url.origin), 'application/xml; charset=utf-8');
+    if (url.pathname === '/llms.txt') return text(agentGuide(url.origin));
+    if (url.pathname === '/index.md') {
+      const result = await calendar(request, env, ctx);
+      const response = text(markdownPage(url.origin, result), 'text/markdown; charset=utf-8');
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
+    }
     if (url.pathname === '/api/next-event') {
       const result = await calendar(request,env,ctx);
       return headers(Response.json(result || {event:null,unavailable:true},{status:result?200:503,headers:{'Cache-Control':'no-store'}}));
@@ -71,6 +81,8 @@ export default {
           element.setInnerContent(`Next meetup: ${date}`);
         }
       },
+    }).on('head', {
+      element(element) { element.append(`<script type="application/ld+json">${structuredData(url.origin, result)}</script>`, {html:true}); },
     }).on('meta[property="og:url"]', {
       element(element) { element.setAttribute('content', new URL('/', request.url).href); },
     }).on('meta[property="og:image"], meta[name="twitter:image"]', {
