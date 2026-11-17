@@ -62,3 +62,7 @@ The assets and metadata can be verified from HTTP responses, but final iMessage,
 ## Automated readers
 
 All community information and the next meetup render on the server. `/robots.txt` permits all user agents; `/sitemap.xml` lists the landing page. `/llms.txt` offers concise source links and API/freshness documentation. `/index.md` provides current meetup information in Markdown, and initial HTML advertises both Markdown and JSON alternates. JSON-LD exposes the community, website, and next event without inventing ticket prices or attendance details. These discovery hints improve readability; individual agents decide which conventions they support.
+
+### Shared dev hostname limitation
+
+Cloudflare applies Browser Integrity Check to every `workers.dev` request before the Worker runs. Its default Python `urllib` signature currently receives HTTP 403/error 1010, while tested named crawler and preview user agents can fetch the site. This check cannot be disabled on `workers.dev`. Programmatic clients should identify themselves with a descriptive application User-Agent (for example, `orlando-community-reader/1.0`). A future Worker Custom Domain in a controlled zone permits configuring this policy for public information paths. The current redirect has not been changed. See [Cloudflare error 1010](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/).
