@@ -20,5 +20,21 @@
   "vars": {
     "LUMA_ICAL_URL": "https://api.luma.com/ics/get?entity=calendar&id=cal-uymZ1tD2lTtRs5C",
     "BUILD_SHA": "local"
-  }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PORCH_COUNTER",
+        "class_name": "PorchCounter"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "porch-v1",
+      "new_sqlite_classes": [
+        "PorchCounter"
+      ]
+    }
+  ]
 }
