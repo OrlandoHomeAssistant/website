@@ -1,6 +1,6 @@
 export { PorchCounter } from './porch-counter';
 import { robots, sitemap, agentGuide, markdownPage, structuredData } from './discovery.js';
-import { parseFeed, selectSnapshot, renderMeetup, REFRESH_MS } from './feed.js';
+import { parseFeed, selectSnapshot, renderMeetup, REFRESH_MS, CALENDAR_URL } from './feed.js';
 
 async function readBounded(response: Pick<Response, 'body'>, maxBytes = 512 * 1024): Promise<string> {
   if (!response.body) throw new Error('Empty feed');
@@ -106,11 +106,12 @@ export default {
     const result = await calendar(request,env,ctx);
     const html = new HTMLRewriter().on('#meetup-ticket', {
       element(element) { element.setInnerContent(renderMeetup(result), {html:true}); },
-    }).on('.hero-copy .text-link', {
+    }).on('#hero-rsvp', {
       element(element) {
-        if (result?.event) {
+        if (result?.event && result.event.url !== CALENDAR_URL) {
           const date = new Intl.DateTimeFormat('en-US', {timeZone:'America/New_York',month:'short',day:'numeric'}).format(new Date(result.event.start));
-          element.setInnerContent(`Next meetup: ${date}`);
+          element.setAttribute('href', result.event.url);
+          element.setInnerContent(`RSVP for ${date}`);
         }
       },
     }).on('head', {

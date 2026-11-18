@@ -31,6 +31,7 @@ beforeEach(async()=>{
  upstream=()=>new Response(fixture,{headers:{'Content-Type':'text/calendar'}});
 });
 const request=(path='/',options)=>worker.dispatchFetch(origin+path,options);
+const heroRsvp = html => html.match(/<a[^>]*id="hero-rsvp"[^>]*>.*?<\/a>/s)?.[0];
 async function seed(age){
  await cache.put(origin+'/__calendar-cache-v1',new Response(JSON.stringify({events:parseFeed(fixture),fetchedAt:Date.now()-age}),{headers:{'Content-Type':'application/json','Cache-Control':'public, max-age=86400'}}));
 }
@@ -39,6 +40,9 @@ test('renders live meetup, one share image, structured data and correct origin w
  const response=await request();assert.equal(response.status,200);
  const html=await response.text();assert.match(html,/Get-Together &amp; Gear Swap/);
  assert.match(html,/https:\/\/luma.com\/qpe49nll/);
+ assert.match(heroRsvp(html),/href="https:\/\/luma.com\/qpe49nll"/);
+ assert.match(heroRsvp(html),/>RSVP for Jan 9<\/a>/);
+ assert.match(heroRsvp(html),/class="button citrus"/);
  const images=[...html.matchAll(/<meta property="og:image" content="([^"]+)"/g)];
  assert.deepEqual(images.map(match=>match[1]),[origin+'/social/share-v2.png']);
  const data=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
@@ -63,13 +67,18 @@ test('expired cache and failed upstream return an unavailable API and usable fal
  await seed(25*60*60*1000);upstream=()=>new Response('Unavailable',{status:503});
  const api=await request('/api/next-event');assert.equal(api.status,503);
  assert.equal((await api.json()).unavailable,true);
- const page=await request();assert.equal(page.status,200);assert.match(await page.text(),/Find the latest meetup on Luma/);
+ const page=await request();assert.equal(page.status,200);const html=await page.text();
+ assert.match(html,/Find the latest meetup on Luma/);
+ assert.match(heroRsvp(html),/href="https:\/\/luma.com\/orlandohomeassistant"/);
+ assert.match(heroRsvp(html),/>See upcoming meetups<\/a>/);
 });
 
 test('empty calendar is an ordinary no-upcoming-events state',async()=>{
  upstream=()=>new Response('BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR');
  const api=await request('/api/next-event');assert.equal(api.status,200);assert.equal((await api.json()).event,null);
  const html=await(await request()).text();assert.match(html,/next meetup is in the works/);
+ assert.match(heroRsvp(html),/href="https:\/\/luma.com\/orlandohomeassistant"/);
+ assert.match(heroRsvp(html),/>See upcoming meetups<\/a>/);
 });
 
 test('invalid and oversized upstream responses fail safely',async()=>{
@@ -105,4 +114,12 @@ test('HEAD is bodyless and health identifies the deployed commit',async()=>{
  const head=await request('/',{method:'HEAD'});assert.equal(head.status,200);assert.equal(await head.text(),'');
  const health=await request('/health');assert.equal(health.status,200);
  assert.deepEqual(await health.json(),{status:'ok',commit:'integration-test'});
+});
+
+test('hero registration rejects unsafe event links and retains the calendar fallback',async()=>{
+ upstream=()=>new Response(fixture.replace(/DESCRIPTION:[\s\S]*?\nLOCATION:/,'URL:javascript:alert(1)\nLOCATION:'));
+ const html=await(await request()).text();
+ assert.match(heroRsvp(html),/href="https:\/\/luma.com\/orlandohomeassistant"/);
+ assert.ok(!heroRsvp(html).includes('javascript:'));
+ assert.match(heroRsvp(html),/>See upcoming meetups<\/a>/);
 });

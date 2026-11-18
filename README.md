@@ -44,7 +44,7 @@ Passing commits on `main` can deploy automatically through GitHub Actions to the
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, test commands, design conventions, and the review process. Use pull requests for changes and run `npm run check` before merging. Check long event titles and venue addresses at narrow mobile widths, both themes, and keyboard navigation. Unit tests cover feed parsing, event order, cancellations, expiry, safe rendering, sharing assets, and discovery. Integration tests run the actual Worker with simulated Luma responses to cover server rendering, cache behavior, outages, size limits, HTTP methods, and static assets.
 
-Code and original SVG implementation are MIT licensed. The fountain-house brand rendition is based on artwork supplied by the organizers. Figtree is distributed under its included SIL Open Font License (`dist/Figtree-OFL.txt`). The community is independent and is not affiliated with the Open Home Foundation.
+Code and original SVG implementation are MIT licensed. The fountain-house brand rendition is based on artwork supplied by the organizers. The meetup photograph was supplied by the organizers for this website; it is excluded from the code license. Figtree is distributed under its included SIL Open Font License (`dist/Figtree-OFL.txt`). The community is independent and is not affiliated with the Open Home Foundation.
 
 ## Link previews and device icons
 
