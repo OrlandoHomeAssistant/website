@@ -29,10 +29,10 @@ assert.equal(noindex,process.env.EXPECT_NOINDEX==='true','Unexpected search inde
 const html=await page.text();
 assert.match(html,/<h1/);assert.match(html,/https:\/\/discord.gg\/5wa9CASXd/);
 const images=[...html.matchAll(/<meta property="og:image" content="([^"]+)"/g)];
-assert.deepEqual(images.map(match=>match[1]),[new URL('/social/share-v2.png',base).href]);
+assert.deepEqual(images.map(match=>match[1]),[new URL('/social/share-v3.png',base).href]);
 const data=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
 assert.ok(data['@graph'].some(node=>node['@type']==='Organization'));
-await Promise.all(['style.css','app.js','social/share-v2.png','apple-touch-icon.png','site.webmanifest'].map(async path=>{
+await Promise.all(['style.css','app.js','social/share-v3.png','apple-touch-icon.png','site.webmanifest'].map(async path=>{
  const [response,local]=await Promise.all([get('/'+path),readFile(new URL('../dist/'+path,import.meta.url))]);
  const remote=Buffer.from(await response.arrayBuffer());
  const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
