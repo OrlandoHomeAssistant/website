@@ -5,7 +5,7 @@
 - **Merge to main:** after checks pass, the exact checked commit deploys automatically to `https://orlando-home-assistant-dev.imagineer21.workers.dev`.
 - **PR preview:** a passing, non-draft PR from this repository creates or updates a native Cloudflare Preview named `pr-<number>`. Approve its `preview` environment deployment to release the preview credential. The URL appears in the GitHub deployment, job summary, and one updated PR comment. The preview runs the tested PR merge revision, so it includes the current base branch.
 - **Forks and Dependabot:** run validation without receiving Cloudflare credentials or deploying. A maintainer can bring a reviewed contribution onto an internal branch to preview it.
-- **PR closed or merged:** a trusted close handler checks out `main` and removes that PR's disposable Preview, including its deployments. An absent Preview is a successful no-op. It never executes closed PR code.
+- **PR closed or merged:** a credential-free close handler dispatches cleanup from protected `main`, which verifies the PR is closed and internal, then removes that PR's disposable Preview, including its deployments. An absent Preview is a successful no-op. It never executes closed PR code.
 
 The dev hostname and official domain redirect stay unchanged. No production deployment or DNS change is configured.
 
@@ -13,7 +13,7 @@ The dev hostname and official domain redirect stay unchanged. No production depl
 
 Configure `CLOUDFLARE_API_TOKEN` as an **environment secret** in both GitHub environments:
 
-- [dev settings](https://github.com/OrlandoHomeAssistant/website/settings/environments): restricted to protected branches. Used for main deployments and trusted close-event cleanup.
+- [dev settings](https://github.com/OrlandoHomeAssistant/website/settings/environments): restricted to protected branches. Used for main deployments and cleanup dispatched on protected `main`.
 - [preview settings](https://github.com/OrlandoHomeAssistant/website/settings/environments): requires the owner's deployment approval because it executes unmerged PR code. Self-review is allowed for this environment so the owner can approve previews for their own PRs. This is separate from the PR's merge approval.
 
 Use a dedicated Cloudflare deployment token with Workers Scripts edit permission scoped to the hosting account. Never put its value in source, issues, command arguments, or chat. `CLOUDFLARE_ACCOUNT_ID` is a non-secret environment variable and is configured in both environments.
@@ -30,7 +30,7 @@ A `pr-<number>` URL is stable across that PR's updates. Closing the PR deletes i
 
 Both paths verify `/health` matches the exact checked SHA, compare static asset hashes against that source, and check sharing metadata, public crawler endpoints, Luma availability handling, and read-only counter access. Automated checks never manufacture switch clicks.
 
-Deployments are serialized per target and outdated queued revisions are skipped. Checkout does not persist Git credentials. Tokens are supplied only to credential validation and Cloudflare deployment/cleanup steps. Preview publication uses GitHub's short-lived token and updates only the comment carrying the preview marker. The `pull_request_target` close handler uses protected `main` code and never checks out a PR ref.
+Deployments are serialized per target and outdated queued revisions are skipped. Checkout does not persist Git credentials. Tokens are supplied only to credential validation and Cloudflare deployment/cleanup steps. Preview publication uses GitHub's short-lived token and updates only the comment carrying the preview marker. The `pull_request_target` close handler has no Cloudflare credentials or checkout. It dispatches the credentialed cleanup workflow on `main`, avoiding PR-event environment restrictions. The cleanup job checks that the PR is closed and internal before using the token and never checks out a PR ref. It can also be retried with `gh workflow run preview-cleanup.yml --ref main --field pr_number=<number>`.
 
 ## Local commands and rollback
 
