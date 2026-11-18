@@ -68,3 +68,19 @@ All community information and the next meetup render on the server. `/robots.txt
 ### Shared dev hostname limitation
 
 Cloudflare applies Browser Integrity Check to every `workers.dev` request before the Worker runs. Its default Python `urllib` signature currently receives HTTP 403/error 1010, while tested named crawler and preview user agents can fetch the site. This check cannot be disabled on `workers.dev`. Programmatic clients should identify themselves with a descriptive application User-Agent (for example, `orlando-community-reader/1.0`). A future Worker Custom Domain in a controlled zone permits configuring this policy for public information paths. The current redirect has not been changed. See [Cloudflare error 1010](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/).
+
+## Porch light demo
+
+Manual switch clicks are recorded as shared **actions**, not unique people. After the visitor first uses the switch, the page shows how often the community has switched the lights off and back on. No cookie, visitor identifier, IP address, or subscriber data is stored by the counter. Each click gets a random action ID so retrying a lost response does not count twice; these IDs are retained for 24 hours and cleaned up on subsequent writes. Public totals are permanent.
+
+The SQLite-backed `PorchCounter` Durable Object owns this house's two totals. Keep the Worker name, namespace/class binding, migration history, and `orlando-porch-v1` instance name stable across builds. Redeploying this Worker or attaching its future official domain preserves its storage. Creating a separate Worker creates a separate namespace unless explicitly configured otherwise. There is no public reset endpoint.
+
+`GET /api/porch` reads totals without incrementing them. `POST /api/porch` records an explicit manual click using JSON `{direction:"off"|"on",id:"<random UUID v4>"}`. The endpoint rejects oversized/malformed inputs and cross-site browser submissions. This is a playful public action counter, not audited analytics or a count of distinct people.
+
+Motion mode is optional, browser-local, and only runs while the illustration is visible. Scrolling briefly lights the house; it returns to idle after two seconds. Manual switching exits motion mode. Automatic motion never sends a counter request, and page loads/preview crawlers do not add clicks. The light demo continues to work if the counter is unavailable.
+
+The protocol FAQ links to the official Zigbee, Z-Wave, Matter, and Thread documentation and distinguishes Matter (the application protocol) from Thread (the network). It makes no device-purchase recommendation without checking the exact model.
+
+## Pull request previews
+
+After validation and approval of the GitHub `preview` environment, internal PRs receive a native Cloudflare Preview URL with isolated counter storage. Merges to `main` deploy to dev after checks pass. Forks run checks without deployment credentials. Closing a PR removes its disposable preview. See [deployment setup](docs/deployment.md) for credentials, activation switches, and verification.

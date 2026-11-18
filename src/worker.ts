@@ -1,7 +1,8 @@
+export { PorchCounter } from './porch-counter';
 import { robots, sitemap, agentGuide, markdownPage, structuredData } from './discovery.js';
 import { parseFeed, selectSnapshot, renderMeetup, REFRESH_MS } from './feed.js';
 
-async function readBounded(response: Response, maxBytes = 512 * 1024): Promise<string> {
+async function readBounded(response: Pick<Response, 'body'>, maxBytes = 512 * 1024): Promise<string> {
   if (!response.body) throw new Error('Empty feed');
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -11,7 +12,7 @@ async function readBounded(response: Response, maxBytes = 512 * 1024): Promise<s
       const {done, value} = await reader.read();
       if (done) break;
       bytes += value.byteLength;
-      if (bytes > maxBytes) { await reader.cancel(); throw new Error('Feed too large'); }
+      if (bytes > maxBytes) { await reader.cancel(); throw new RangeError('Body too large'); }
       text += decoder.decode(value, {stream: true});
     }
     return text + decoder.decode();
@@ -49,9 +50,39 @@ function headers(response: Response) {
   return result;
 }
 
+async function porch(request: Request, env: Env): Promise<Response> {
+  const reply = (data: unknown, status = 200) => headers(Response.json(data, {status, headers:{'Cache-Control':'no-store'}}));
+  if (!['GET','HEAD','POST'].includes(request.method)) return headers(new Response('Method not allowed', {status:405, headers:{Allow:'GET, HEAD, POST'}}));
+  if (request.method === 'POST') {
+    const origin = request.headers.get('Origin');
+    if ((origin && origin !== new URL(request.url).origin) || request.headers.get('Sec-Fetch-Site') === 'cross-site') return reply({error:'Same-origin requests only'},403);
+    if (request.headers.get('Content-Type')?.split(';')[0].trim() !== 'application/json') return reply({error:'Use application/json'},415);
+    let action: unknown;
+    try { action = JSON.parse(await readBounded(request,256)); }
+    catch (error) { return reply({error:'Invalid action'},error instanceof RangeError ? 413 : 400); }
+    const value = action as {direction?:unknown; id?:unknown} | null;
+    if (!value || (value.direction !== 'off' && value.direction !== 'on') || typeof value.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.id)) return reply({error:'Invalid action'},400);
+    try {
+      const result = await env.PORCH_COUNTER.getByName('orlando-porch-v1').record(value.direction as 'off'|'on',value.id);
+      return result.ok ? reply(result.counts) : reply({error:'Action ID already used for another direction'},409);
+    } catch {
+      console.warn(JSON.stringify({event:'porch_counter_unavailable'}));
+      return reply({error:'Community counts temporarily unavailable'},503);
+    }
+  }
+  try {
+    const counts = await env.PORCH_COUNTER.getByName('orlando-porch-v1').read();
+    const response = reply(counts);
+    return request.method === 'HEAD' ? new Response(null,response) : response;
+  } catch {
+    return reply({error:'Community counts temporarily unavailable'},503);
+  }
+}
+
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === '/api/porch') return porch(request,env);
     if (!['GET','HEAD'].includes(request.method)) return headers(new Response('Method not allowed',{status:405,headers:{Allow:'GET, HEAD'}}));
     const text = (body: string, type = 'text/plain; charset=utf-8') => headers(new Response(body, {headers:{'Content-Type':type,'Cache-Control':'public, max-age=900'}}));
     if (url.pathname === '/health') return headers(Response.json({status:'ok',commit:env.BUILD_SHA},{headers:{'Cache-Control':'no-store'}}));
