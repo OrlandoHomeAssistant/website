@@ -32,6 +32,8 @@ await Promise.all(['style.css','app.js','social/share-v2.png','apple-touch-icon.
  const remote=Buffer.from(await response.arrayBuffer());
  const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
  assert.equal(sha(remote),sha(local),`Deployed ${path} differs from the checked source`);
+ assert.equal(response.headers.get('X-Content-Type-Options'),'nosniff',`Missing static security header for ${path}`);
+ assert.ok(response.headers.get('Content-Security-Policy'),`Missing static CSP for ${path}`);
 }));
 assert.match(await(await get('/robots.txt')).text(),/Allow: \//);
 assert.ok((await(await get('/sitemap.xml')).text()).includes(new URL('/',base).href));

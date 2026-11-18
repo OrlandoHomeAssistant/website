@@ -84,3 +84,7 @@ The protocol FAQ links to the official Zigbee, Z-Wave, Matter, and Thread docume
 ## Pull request previews
 
 After validation and approval of the GitHub `preview` environment, internal PRs receive a native Cloudflare Preview URL with isolated counter storage. Merges to `main` deploy to dev after checks pass. Forks run checks without deployment credentials. Closing a PR removes its disposable preview. See [deployment setup](docs/deployment.md) for credentials, activation switches, and verification.
+
+## Versioned production releases
+
+Published stable version tags deploy the exact reviewed main commit through the protected `production` environment. Production has separate account credentials and persistent counter storage. Static assets bypass Worker execution to conserve Free-tier request usage. See [production releases](docs/production-release.md). The existing domain redirect remains in place until a coordinated cutover.
