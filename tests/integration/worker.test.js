@@ -6,6 +6,7 @@ import {build} from 'esbuild';
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 import {parseFeed} from '../../src/feed.js';
 
+const config=JSON.parse(readFileSync(new URL('../../wrangler.jsonc',import.meta.url),'utf8'));
 const origin='https://community.test';
 const fixture=readFileSync(new URL('../orlando.ics',import.meta.url),'utf8')
   .replaceAll('20270109','20990109'); // Keep the fixture upcoming as the test suite ages.
@@ -15,7 +16,7 @@ before(async()=>{
  worker=new Miniflare(convertV4MiniflareOptions({
   modules:true,script:bundle.outputFiles[0].text,
   compatibilityDate:'2026-11-16',compatibilityFlags:['nodejs_compat'],
-  assets:{directory:fileURLToPath(new URL('../../dist',import.meta.url)),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}},
+  assets:{directory:fileURLToPath(new URL('../../dist',import.meta.url)),binding:'ASSETS',run_worker_first:config.assets.run_worker_first,routerConfig:{has_user_worker:true}},
   bindings:{LUMA_ICAL_URL:'https://luma-feed.test/orlando.ics',BUILD_SHA:'integration-test'},
   outboundService:async(request)=>{
    assert.equal(request.url,'https://luma-feed.test/orlando.ics');calls++;

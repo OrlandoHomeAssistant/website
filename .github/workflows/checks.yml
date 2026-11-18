@@ -36,8 +36,10 @@ jobs:
       - run: npm run typecheck
       - name: Verify generated artwork is current
         run: npm run assets && git diff --exit-code -- dist/
-      - name: Verify deployment bundle
-        run: npx wrangler deploy --dry-run
+      - name: Verify deployment bundles
+        run: |
+          npx wrangler deploy --dry-run
+          npx wrangler deploy --config wrangler.production.jsonc --dry-run
   check:
     name: check
     needs: validate

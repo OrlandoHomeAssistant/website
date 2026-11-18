@@ -7,7 +7,7 @@
 - **Forks and Dependabot:** run validation without receiving Cloudflare credentials or deploying. A maintainer can bring a reviewed contribution onto an internal branch to preview it.
 - **PR closed or merged:** a credential-free close handler dispatches cleanup from protected `main`, which verifies the PR is closed and internal, then removes that PR's disposable Preview, including its deployments. An absent Preview is a successful no-op. It never executes closed PR code.
 
-The dev hostname and official domain redirect stay unchanged. No production deployment or DNS change is configured.
+The dev hostname and official domain redirect stay unchanged. Production uses a separate stable-release workflow; DNS cutover remains a coordinated owner action.
 
 ## One-time credentials
 
@@ -49,3 +49,7 @@ EXPECTED_BUILD_SHA="$(git rev-parse HEAD)" EXPECT_NOINDEX=true npm run smoke -- 
 ```
 
 To undo a bad main change, revert it through a PR. For an urgent restore, use Cloudflare's deployment rollback and then revert the source. Set `DEV_DEPLOY_ENABLED=false` while investigating. Set `PREVIEW_DEPLOY_ENABLED=false` to pause PR deployment and cleanup; existing Preview URLs remain until removed.
+
+## Production
+
+Stable published `vMAJOR.MINOR.PATCH` releases deploy through a separate, tag-restricted `production` environment after owner approval. See [production releases](production-release.md) for configuration, release provenance checks, Free-tier routing, retry/rollback, and the separate domain cutover.

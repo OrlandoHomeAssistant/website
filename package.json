@@ -1,6 +1,6 @@
 {
   "name": "home-assistant-orlando-website",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,8 @@
     "assets": "node scripts/generate-assets.mjs",
     "test:unit": "node --test tests/*.test.js",
     "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "deploy:production": "wrangler deploy --config wrangler.production.jsonc"
   },
   "dependencies": {
     "ical.js": "^2.2.1"
