@@ -8,7 +8,7 @@ Production runs in the domain owner's Cloudflare account as `orlando-home-assist
 2. Create a stable semantic-version tag on that exact main commit, such as `v1.0.0`, and publish its GitHub Release. Drafts and prereleases do not deploy.
 3. The `Release production` workflow verifies that the published tag matches its execution SHA and belongs to main, then reruns tests, type checking, artwork verification, and a production deployment dry-run on Node 24 and 26.
 4. Approve the `production` environment deployment. It is restricted to `v*` tags and requires the owner's approval. Self-review is allowed so the owner can authorize their own release.
-5. The workflow verifies access to the existing Worker, deploys the exact tested tag, and checks the live commit, asset hashes, meetup feed behavior, crawler endpoints, social metadata, and counter reads.
+5. The workflow verifies access to the existing Worker, deploys the exact tested tag, and checks the live commit, asset hashes, meetup feed behavior, crawler endpoints, social metadata, and counter reads. The read-only counter readiness check retries transient 502/503/504 responses up to ten times; a persistent failure still fails deployment.
 
 Release tag creation is restricted to the repository owner, NimbleEngineer21. Separate active rules prohibit updating or deleting `v*` tags, including administrator bypass. Publish a new patch version for code changes; keep an existing release tag pointing at the same commit.
 

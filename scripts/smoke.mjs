@@ -4,10 +4,15 @@ import {readFile} from 'node:fs/promises';
 const base=new URL(process.argv[2] || 'https://orlando-home-assistant-dev.imagineer21.workers.dev');
 const expected=process.env.EXPECTED_BUILD_SHA;
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function get(path){
- const response=await fetch(new URL(path,base),{headers:{'User-Agent':'OrlandoHomeAssistant-Smoke/1.0','Cache-Control':'no-cache'},signal:AbortSignal.timeout(12000)});
- assert.equal(response.status,200,`${path}: HTTP ${response.status}`);
- return response;
+async function get(path,attempts=1){
+ for(let attempt=0;attempt<attempts;attempt++){
+  const response=await fetch(new URL(path,base),{headers:{'User-Agent':'OrlandoHomeAssistant-Smoke/1.0','Cache-Control':'no-cache'},signal:AbortSignal.timeout(12000)});
+  // A new deployment can briefly return an unavailable storage binding.
+  // Retry only safe reads and transient server statuses, with a finite budget.
+  if([502,503,504].includes(response.status) && attempt+1<attempts){await response.body?.cancel();await delay(2000);continue;}
+  assert.equal(response.status,200,`${path}: HTTP ${response.status}`);
+  return response;
+ }
 }
 let health;
 for(let attempt=0;attempt<5;attempt++){
@@ -39,7 +44,7 @@ assert.match(await(await get('/robots.txt')).text(),/Allow: \//);
 assert.ok((await(await get('/sitemap.xml')).text()).includes(new URL('/',base).href));
 assert.ok((await(await get('/llms.txt')).text()).includes(new URL('/api/next-event',base).href));
 assert.match((await get('/index.md')).headers.get('Content-Type'),/text\/markdown/);
-const porch=await(await get('/api/porch')).json();
+const porch=await(await get('/api/porch',10)).json();
 assert.ok(Number.isSafeInteger(porch.off) && porch.off>=0 && Number.isSafeInteger(porch.on) && porch.on>=0);
 const api=await fetch(new URL('/api/next-event',base),{headers:{'User-Agent':'OrlandoHomeAssistant-Smoke/1.0'},signal:AbortSignal.timeout(12000)});
 const next=await api.json();
