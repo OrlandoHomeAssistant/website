@@ -24,7 +24,6 @@
 .neighborhood .demo-label rect{fill:#19343f;stroke:#537787}
 .neighborhood .demo-label text{fill:#edf6f8}
 .house-demo.lights-off .windows,.house-demo.lights-off .lamps{fill:#456979}
-.neighborhood .sun{fill:#eaa24f}
 a:focus-visible,button:focus-visible,summary:focus-visible{outline-color:#ffbe75}
 }
 

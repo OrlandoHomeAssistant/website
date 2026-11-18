@@ -18,7 +18,7 @@ export function structuredData(origin, result) {
  const graph=[organization,{'@type':'WebSite','@id':`${origin}/#website`,name:'Home Assistant Orlando',url:`${origin}/`,publisher:{'@id':organization['@id']}}];
  if(result?.event) {
   const event=result.event;
-  graph.push({'@type':'Event','@id':`${origin}/#next-meetup`,name:event.title,url:event.url,startDate:event.start,endDate:event.end,description:'Orlando Home Assistant community meetup. See Luma for the full agenda and registration details.',image:`${origin}/social/share-v2.png`,...(event.location ? {location:{'@type':'Place',name:event.location.split(',')[0],address:event.location}} : {})});
+  graph.push({'@type':'Event','@id':`${origin}/#next-meetup`,name:event.title,url:event.url,startDate:event.start,endDate:event.end,description:'Orlando Home Assistant community meetup. See Luma for the full agenda and registration details.',image:`${origin}/social/share-v3.png`,...(event.location ? {location:{'@type':'Place',name:event.location.split(',')[0],address:event.location}} : {})});
  }
  // JSON is embedded in an inert script element; escape HTML-sensitive characters.
  return JSON.stringify({'@context':'https://schema.org','@graph':graph}).replace(/[<>&\u2028\u2029]/g,char=>'\\u'+char.charCodeAt(0).toString(16).padStart(4,'0'));

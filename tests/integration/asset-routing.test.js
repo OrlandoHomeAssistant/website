@@ -13,7 +13,7 @@ before(()=>{
 });
 after(async()=>{await worker?.dispose();});
 test('static assets bypass Worker execution while retaining their security headers',async()=>{
- for(const path of ['/app.js','/style.css','/figtree-latin.woff2','/social/share-v2.png']){
+ for(const path of ['/app.js','/style.css','/figtree-latin.woff2','/social/share-v3.png']){
   const response=await worker.dispatchFetch('https://routing.test'+path);
   assert.equal(response.status,200);assert.equal(response.headers.get('X-Test-Worker-Invoked'),null,path);
   assert.equal(response.headers.get('X-Content-Type-Options'),'nosniff');

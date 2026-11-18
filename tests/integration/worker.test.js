@@ -44,7 +44,7 @@ test('renders live meetup, one share image, structured data and correct origin w
  assert.match(heroRsvp(html),/>RSVP for Jan 9<\/a>/);
  assert.match(heroRsvp(html),/class="button citrus"/);
  const images=[...html.matchAll(/<meta property="og:image" content="([^"]+)"/g)];
- assert.deepEqual(images.map(match=>match[1]),[origin+'/social/share-v2.png']);
+ assert.deepEqual(images.map(match=>match[1]),[origin+'/social/share-v3.png']);
  const data=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
  assert.equal(data['@graph'].find(node=>node['@type']==='Event').startDate,'2099-01-09T14:00:00.000Z');
  assert.equal(response.headers.get('Cache-Control'),'no-store');

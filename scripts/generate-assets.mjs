@@ -32,7 +32,7 @@ const house = html.match(/<svg class="neighborhood"[\s\S]*?<\/svg>/)[0]
  .replace(/<title[\s\S]*?<\/title>/,'').replace(/<desc[\s\S]*?<\/desc>/,'')
  .replace(/<g class="demo-label">[\s\S]*?<\/g>/,'');
 for (const [name,w,h,scale,x,y] of [
- ['share-v2.png',1200,630,1.15,243.5,44.75],
+ ['share-v3.png',1200,630,1.15,243.5,44.75],
 ]) {
  png('social/'+name,`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="${w}" height="${h}" fill="#edf6f8"/><g transform="translate(${x} ${y}) scale(${scale})">${house}</g></svg>`);
 }

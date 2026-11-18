@@ -50,7 +50,7 @@ Code and original SVG implementation are MIT licensed. The fountain-house brand 
 
 The initial HTML includes Open Graph and large-image card metadata, including absolute URLs, dimensions, MIME types, and accessible image descriptions. The Worker adjusts URL metadata to its serving origin so links work on dev and a future production origin. The preview artwork has no event date, so cached previews remain relevant as Luma events change. Share clients cache previews independently; image URLs are versioned so artwork can be updated deliberately.
 
-- `dist/social/share-v2.png`: 1200 × 630 share preview, centered for wide and square crops.
+- `dist/social/share-v3.png`: 1200 × 630 share preview, centered for wide and square crops.
 - Only one `og:image` is advertised. Multiple images can become side-by-side tiles in Apple Messages. Old v1 images remain available for previously cached links, but are not advertised.
 - `dist/apple-touch-icon.png`: 180 × 180 iPhone/iPad icon.
 - `dist/icons/`: 192/512 Android icons and a separate maskable icon with padding inside its safe zone.
