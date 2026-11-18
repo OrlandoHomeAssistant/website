@@ -2,21 +2,56 @@ name: Remove closed PR preview
 on:
   pull_request_target:
     types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Closed internal PR whose disposable preview should be removed
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
-  group: preview-${{ github.event.pull_request.number }}
+  group: preview-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: false
 jobs:
-  cleanup:
+  dispatch:
     if: >-
+      github.event_name == 'pull_request_target' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       vars.PREVIEW_DEPLOY_ENABLED != 'false'
     runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      # No checkout or Cloudflare credentials in a PR-triggered job.
+      - name: Dispatch cleanup from the protected main branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh workflow run preview-cleanup.yml --repo "$GITHUB_REPOSITORY" --ref main --field "pr_number=$PR_NUMBER"
+  cleanup:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      vars.PREVIEW_DEPLOY_ENABLED != 'false'
+    runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     environment: dev
     steps:
-      # This privileged close handler never checks out or executes PR code.
+      - name: Require a closed PR from this repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          [[ "$PR_NUMBER" =~ ^[1-9][0-9]{0,8}$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" > "$RUNNER_TEMP/closed-pr.json"
+          jq -e --arg repo "$GITHUB_REPOSITORY" '.state == "closed" and .head.repo.full_name == $repo' "$RUNNER_TEMP/closed-pr.json" > /dev/null
+      # This credentialed job never checks out or executes PR code.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
@@ -28,5 +63,5 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ inputs.pr_number }}
         run: node scripts/delete-preview.mjs "$PR_NUMBER"
